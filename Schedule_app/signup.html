@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Signup</title>
+    <link rel="stylesheet" href="style.css">
+
+    <link href='fullcalendar/main.css' rel='stylesheet' />  
+    <script src='fullcalendar/main.js'></script>
+  </head>
+  <style>
+
+  </style>
+
+  <body>
+    <header>
+        <h1>新規登録</h1>
+    </header>
+
+    <label >E-mail <input id="email" type="text" placeholder="hoge@hoge.com"></label> <br>
+    <label >Password <input id="password" type="text" placeholder="6文字以上"></label>
+
+    <button id="signup" type="button"> Sign Up </button>
+
+    
+    
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-app.js";
+        import { doc, getDoc, getFirestore } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/9.12.1/firebase-auth.js";
+        
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+        
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyByrmygy10GqKpUKb8D7LKLCki3R-PDUsI",
+            authDomain: "schedule-app-f7740.firebaseapp.com",
+            projectId: "schedule-app-f7740",
+            storageBucket: "schedule-app-f7740.appspot.com",
+            messagingSenderId: "1084636086479",
+            appId: "1:1084636086479:web:2157636d3e71200db837ba"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+
+        // Initialize Cloud Firestore and get a reference to the service
+        const db = getFirestore(app); 
+        
+        
+
+        // Initialize Firebase
+
+        const auth = getAuth();
+        setPersistence(auth, browserLocalPersistence)
+            .then(() => {
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        location.href = "./index.html"
+                    } else {
+                        console.log("not logging in")
+                    }
+                });
+            })
+
+
+        const signup = () => {
+            createUserWithEmailAndPassword(auth, document.getElementById("email").value, document.getElementById("password").value)
+                .then((userCredential) => {
+                    console.log(userCredential.user)
+                })
+        }
+
+        document.getElementById("signup").onclick = () => signup()
+
+
+
+
+
+
+    
+            
+    </script>
+
+    
+
+
+  </body>
+</html>

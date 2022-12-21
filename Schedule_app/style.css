@@ -1,0 +1,175 @@
+html {
+  font-size: 18px;
+}
+
+.add_tag{
+  margin-right: 0;
+  margin-left: auto;
+  width: 25%;
+
+  position: relative; 
+  top: -29px; /* 上から移動 */
+  left: 0px; /* 左から動 */
+}
+
+label{
+  font-size: 20px
+}
+
+
+
+
+#tag{
+  position: relative; 
+  top: 0px; /* 上から移動 */
+  left: 130px; /* 左から動 */
+}
+#add{
+  position: relative; 
+  top: 0px; /* 上から1移動 */
+  left: 130px; /* 左から移動 */  
+}
+
+#logout{
+  position: relative; 
+  top: 0px; /* 上から1移動 */
+  left: 180px; /* 左から移動 */  
+}
+
+
+#fc-dom-1{
+  font-size: 26px;
+}
+
+input{
+  width: 20%;
+  
+}
+
+
+body,html {
+  width: 960px;
+  margin: 1rem auto;
+  font-family: sans-serif;
+  padding-top: 90px;
+}
+
+::placeholder {
+  color: rgb(183, 183, 183);
+}
+
+
+
+body{
+   background: rgb(255, 255, 255);
+}
+
+.fc-custom-view{
+  width: 90%;
+  font-size: 20px;
+  position: fixed;
+
+  left: 0; 
+}
+
+
+ #canvas {
+   width: 1000px;
+   height: 500px;
+   background: #fff;
+ }
+
+ header {
+    width: 100%;
+    height: 150px;
+    background: rgba(0, 234, 255, 0.597);
+    padding: 20px 50px;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0; 
+
+    z-index: 100;
+}
+
+
+
+#calendar{
+  height: 10;
+  width: 960;
+}
+
+
+.red{
+  color: #ffffff;
+  background-color: #ff0000;
+}
+
+.blue{
+  color: #ffffff;
+  background-color: #0000ff;
+}
+
+.green{
+  color: #ffffff;
+  background-color: #00ff00;
+}
+
+
+
+.custom-view table {
+  width: 100%;
+
+}
+
+
+.custom-view table tr td,
+.custom-view table tr th{
+  border-width: 1px 0;
+}
+
+
+.custom-view table tbody tr td {
+  text-align: center;
+}
+
+
+
+.custom-view table tbody tr:nth-child(2n){
+  background-color: #f2f2f2;
+
+}
+
+
+#confirm_popup{ /*ポップアップ*/
+  position: absolute;
+  top: 50vh;
+  left: 50vw;
+
+  transform: translate(-50%, -50%);  /*自分の大きさの分移動して中心にする*/
+
+  width: 500px;
+  height: 350px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  background-color: #ffffff;
+
+  box-shadow:  0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  border: 1px solid #e0e0e0;
+  border-radius: 1.2rem;
+}
+
+#confirm_popup button{
+  border: none;
+
+  padding: 10px 20px;
+}
+
+.hidden{
+  display: none !important;
+
+}

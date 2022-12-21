@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+  <title>Schedule_app</title>
+  <link rel="stylesheet" href="style.css">
+
+  <link href='fullcalendar/main.css' rel='stylesheet' />
+  <script src='fullcalendar/main.js'></script>
+</head>
+<style>
+
+</style>
+
+<body>
+  <script src="schedule.js"></script>
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-app.js";
+    import { doc, getDoc, getFirestore, setDoc, collection, query, where, getDocs, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-firestore.js";
+    import { getAuth, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-auth.js";
+
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyByrmygy10GqKpUKb8D7LKLCki3R-PDUsI",
+      authDomain: "schedule-app-f7740.firebaseapp.com",
+      projectId: "schedule-app-f7740",
+      storageBucket: "schedule-app-f7740.appspot.com",
+      messagingSenderId: "1084636086479",
+      appId: "1:1084636086479:web:2157636d3e71200db837ba"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+
+    // Initialize Cloud Firestore and get a reference to the service
+    const db = getFirestore(app);
+    const auth = getAuth();
+    let calendar_data = null;
+
+
+
+    const docRef = doc(db, "tags", "JFz7bjoMJddYdq6gGYWX");
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      console.log("Document data:", docSnap.data());
+    } else {
+      // doc.data() will be undefined in this case
+      console.log("No such document!");
+    }
+
+    document.getElementById('logout').onclick = () => {
+      signOut(auth);
+    }
+
+    setPersistence(auth, browserLocalPersistence)
+      .then(() => {
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            console.log(user)
+          } else {
+            location.href = "./login.html"
+          }
+        });
+      })
+
+    document.getElementById('addTag').onclick = () => {  //タグ作成ボタンが押されたら
+      const new_option = document.createElement("option");
+      const tag_title = document.getElementById("tag_title").value;
+      if (tag_title != "") {  //空欄が入らないようにする
+        new_option.innerText = tag_title;
+        tag_color[tag_title] = document.getElementById("tag_color").value;
+        document.getElementById("tag_input").appendChild(new_option);
+
+        setDoc(doc(db, "tags", Math.random().toString(32).substring(2)), {
+          color: tag_color[tag_title],
+          name: tag_title,
+          user_id: auth.currentUser.uid
+
+        });
+      }
+    }
+
+    const tag_color = {  //タグと色の対応（辞書）を作る
+      "default_tag": "#000000"
+    }
+
+    const hexToRgb = (hex) => {  //16進数をrgbに
+      const r = parseInt(hex.slice(1, 3), 16)
+      const g = parseInt(hex.slice(3, 5), 16)
+      const b = parseInt(hex.slice(5, 7), 16)
+      return [r, g, b]
+    }
+
+    //タグと色のデータ取得
+    const q = query(collection(db, "tags"), where("user_id", "==", auth.currentUser.uid));  //user_idが等しいタグのみ
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      console.log(doc.id, " => ", doc.data());
+
+      const new_option = document.createElement("option");
+      const tag_title = doc.data().name;
+
+      new_option.innerText = tag_title;
+      tag_color[tag_title] = doc.data().color;
+      document.getElementById("tag_input").appendChild(new_option);
+    });
+
+
+    //カレンダーを持ってくる
+    let calendarSnapshot = await getDocs(query(collection(db, "calendars"), where("user_id", "==", auth.currentUser.uid)));
+
+    if (calendarSnapshot.docs.length == 0) { //新規登録のユーザー用
+      setDoc(doc(db, "calendars", Math.random().toString(32).substring(2)), {
+        is_published: true,
+        user_id: auth.currentUser.uid
+      });
+    }
+
+    calendarSnapshot = await getDocs(query(collection(db, "calendars"), where("user_id", "==", auth.currentUser.uid)));
+    if (calendarSnapshot.docs.length > 0) {
+      calendar_data = calendarSnapshot.docs[0].data();
+      calendar_data.id = calendarSnapshot.docs[0].id;
+      //console.log(calendar_data);
+
+      const eventsSnapshot = await getDocs(
+        query(
+          collection(db, "calendars", calendar_data.id, "events"
+          )
+        )
+      );
+
+      calendar_data.events = eventsSnapshot.docs.map((doc) => {
+        const event_data = doc.data();
+        event_data.id = doc.id;
+        if (event_data.start !== undefined) event_data.start = event_data.start.toDate();
+        if (event_data.end !== undefined) event_data.end = event_data.end.toDate();
+
+        const background_color = tag_color[event_data.tag_id];
+
+
+        console.log(event_data.tag_id, background_color);
+
+        const rgb = hexToRgb(background_color);
+        const lightness = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255
+        const font_color = lightness > 0.5 ? "#000000" : "#ffffff"
+        event_data.textColor = font_color;
+
+        event_data.backgroundColor = background_color; //探してきた色を、background, borderに入れる
+        event_data.borderColor = background_color;
+
+        return event_data;
+      });
+      console.log(calendar_data);
+
+      const CustomViewConfig = {
+        classNames: ['custom-view'],
+        buttonText: '5w1h',
+        type: "table",
+        duration: { days: 31 },
+        titleFormat: function (date) {
+          const startYear = date.start.year;
+          const endYear = date.end.year;
+          const startMonth = date.start.month + 1;
+          const endMonth = date.end.month + 1;
+          const startDay = date.start.day;
+          const endDay = date.end.day;
+
+          if (startYear === endYear) {
+            return startYear + '/' + startMonth + '/' + startDay + ' - ' + endMonth + '/' + endDay + '';
+          } else {
+            return startYear + '/' + startMonth + '/' + startDay + ' - ' + endYear + '/' + endMonth + '/' + endDay + '';
+          }
+        },
+
+        content: function (props) {
+          const segs = FullCalendar.sliceEvents(props, true);
+          let getData = '';
+          function addZero(num) {
+            let result = '';
+            if (num < 10) {
+              result = '0' + num;
+            } else {
+              result = String(num);
+            }
+
+            return result;
+          };
+          function getSegs() {
+            for (let i = 0, len = segs.length; i < len; i++) {
+              const data = segs[i];
+              const start = data.instance.range.start;
+              const end = data.instance.range.end;
+              const month = start.getMonth() + 1;
+              const day = start.getDate();
+              const weekNum = start.getDay();
+              const week = ['(日)', '(月)', '(火)', '(水)', '(木)', '(金)', '(土)'][weekNum];
+              const getDate = month + '月' + day + '日' + week;
+
+              const startHours = start.getUTCHours();
+              const endHours = end.getUTCHours();
+              const startMinutes = start.getUTCMinutes();
+              const endMinutes = end.getUTCMinutes();
+              let getTime;
+              if (startHours + startMinutes + endHours + endMinutes === 0) {
+                getTime = '終日';
+              } else {
+                getTime = addZero(startHours) + ':' + addZero(startMinutes) + '-' + addZero(endHours) + ':' + addZero(endMinutes);
+              }
+              getData +=
+                "<tr><th>" +
+                getDate +
+                "</th><td>" +
+                getTime +
+                "</td><td>" +
+                data.def.title +
+                "</td><td>" +
+                data.def.extendedProps.where +
+                "</td><td>" +
+                data.def.extendedProps.why +
+                "</td><td>" +
+                data.def.extendedProps.how +
+                "</td></tr>";
+            }
+
+            return getData;
+          }
+          getSegs();
+
+          let html;
+          if (getData === '') {
+            html = '<div class="not-data">表示する予定はありません</div>';
+          } else {
+            html = '<table><thead><tr><th>日付</th><th>時間</th><th>予定</th><th>場所</th><th>理由</th><th>詳細</th></tr></thead>' +
+              '<tbody id="sort" ' + getData + '</tbody>' +
+              '</table>';
+          }
+
+          return { html: html };
+        }
+      };
+
+
+      var calendar = {};
+      var calendarEl = document.getElementById('calendar');
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        height: 'auto',
+        eventTimeFormat: {
+          hour: 'numeric',
+          minute: '2-digit'
+        },
+
+        firstDay: 1,
+        headerToolbar: {
+          left: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth,custom',
+          center: "title",
+          right: "today prev,next"
+        },
+
+        views: {
+          custom: CustomViewConfig,
+        },
+
+        buttonText: {
+          today: 'Today',
+          month: 'Month',
+          list: 'List',
+          
+        },
+
+        initialView: 'dayGridMonth',// オプション　（月表示）
+        events: calendar_data.events,
+
+        eventClick: (event) => {
+          confirmDeleteEvent(event);
+        },
+
+
+      });
+
+      calendar.render(); // カレンダーの初期化（再レンダリング）
+    }
+
+
+    //イベントを消す
+    const confirmDeleteEvent = (event) => {
+      document.getElementById('confirm_popup_event_name').innerText = event.event.title
+      openPopup();
+      document.getElementById('delete_event_button').onclick = () => {
+        event.event.remove();
+        closePopup();
+
+        //firebaseも消す
+        deleteDoc(doc(db, "calendars", calendar_data.id, "events", event.event.id));
+      }
+
+    }
+
+
+    const closePopup = () => {
+      document.getElementById("confirm_popup").classList.add("hidden")
+    }
+
+    document.getElementById('closePopup').onclick = () => {
+      document.getElementById("confirm_popup").classList.add("hidden")
+    }
+
+    const openPopup = () => {
+      document.getElementById("confirm_popup").classList.remove("hidden")
+    }
+
+
+    //読み込み完了時、カレンダー処理
+    document.addEventListener('DOMContentLoaded', function () {
+      var calendarEl = document.getElementById('calendar');
+    });
+
+
+    document.getElementById('add').onclick = () => { //Addボタンが押された時
+      var plan_array = new Array(); //配列plan_array作成
+
+      const start_time = document.getElementById('start'); //htmlから取得
+      const end_time = document.getElementById('end');
+      const what = document.getElementById('what');
+      const where = document.getElementById('where');
+      const why = document.getElementById('why');
+      const how = document.getElementById('how');
+
+
+      const background_color = tag_color[document.getElementById('tag_input').value]; //tag_color辞書型から持ってくる
+      const ID = Date.now();
+
+      plan_array.push([ID, start_time.value, end_time.value, what.value, where.value, why.value, how.value]);
+
+
+
+      //var plan_make  = document.createElement('div'); //divを作る
+      //plan_make.innerHTML = plan_array; //配列を格納
+      //var add_place = document.getElementById('add_place');
+      //add_place.appendChild(plan_make); //でadd_placeにdivを作成 (divには配列)
+
+      //alert(plan_array);
+
+
+      const new_event = { extendedProps: {} };
+
+      new_event.title = what.value;
+      new_event.start = start_time.value;
+      new_event.end = end_time.value;
+
+
+      ///new_event.extendedProps.tag = event_tag.value;
+      ///new_event.backgroundColor = background_color.value;
+
+
+      new_event.backgroundColor = background_color; //探してきた色を、background, borderに入れる
+      new_event.borderColor = background_color;
+
+
+      const rgb = hexToRgb(background_color);
+      const lightness = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255
+      const font_color = lightness > 0.5 ? "#000000" : "#ffffff"
+      new_event.textColor = font_color;
+
+
+      new_event.where = where.value;
+      new_event.why = why.value;
+      new_event.how = how.value;
+
+
+      if (!(new_event.start < new_event.end)) {  //日時に不正があったら止める
+        alert("不正な日時です");
+        return;
+      }
+      console.log(new_event);
+      calendar.addEvent(new_event); //https://fullcalendar.io/docs/event-model のcallbacksに一覧がある
+
+      //firebase側
+      setDoc(doc(db, "calendars", calendar_data.id, "events", Math.random().toString(32).substring(2)), {
+        start: Timestamp.fromDate(new Date(new_event.start)),
+        end: Timestamp.fromDate(new Date(new_event.end)),
+        title: new_event.title,
+        why: new_event.why,
+        how: new_event.how,
+        where: new_event.where,
+        tag_id: document.getElementById('tag_input').value
+
+      });
+
+    }
+
+    const sortElement = document.getElementById('sort');
+    //Sortable.create(sortElement);
+
+
+
+
+
+  </script>
+
+
+  <header>
+    <form style="display: inline">
+      <label> Start_time <input id="start" type="datetime-local" /> </label>
+      <label> End_time <input id="end" type="datetime-local" /> </label>
+    </form>
+
+    <form class="add_tag">
+      <input type="text" id="tag_title" placeholder="Tag">
+      <input type="color" id="tag_color">
+      <button type="button" id="addTag" onclick="addTag()">追加</button>
+    </form>
+
+    <form>
+
+      <label> 予定タイトル <input id="what" type="text" placeholder="What?"> </label>
+      <label> 場所 <input id="where" type="text" placeholder="Where?" /> </label>
+      <br>
+      <label> 実行理由 <input id="why" type="text" placeholder="Why?" /> </label>
+      <label> 詳細 <input id="how" type="text" placeholder="How?" /> </label>
+
+      <label id="tag">
+        タグ
+        <select id="tag_input">
+          <option>default_tag</option>
+        </select>
+      </label>
+
+
+      <button id="add" type="button">Add Task</button>
+      <button id="logout" type="button"> Logout</button>
+    </form>
+
+
+    <div id="confirm_popup" class="hidden">
+      <div>
+        <span id="confirm_popup_event_name"></span>
+        <span>を削除しますか</span>
+      </div>
+      <div>
+        <button onclick="closePopup()" id="closePopup">いいえ</button>
+        <button id="delete_event_button">はい</button>
+      </div>
+
+    </div>
+
+
+
+
+  </header>
+
+
+  <div id="add_place"></div>
+  <div id='calendar'></div>
+
+
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+
+
+
+
+</body>
+
+</html>
